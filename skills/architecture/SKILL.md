@@ -3,7 +3,7 @@ name: architecture
 description: CompNova-managed architecture-diagram skill. Use for architecture, workflow, sequence, data-flow, and lifecycle diagrams from plain-language descriptions or repository evidence. Uses a centrally pinned Archify runtime and adds CompNova rules for distinguishing confirmed facts from unknown or inferred infrastructure.
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   upstream: "tt-a1i/archify"
   upstream_version: "v2.16.0"
   upstream_commit: "c826e6c3a7abad19c0f3cd1ca57207d54b1ad8de"
@@ -17,17 +17,45 @@ This is a thin CompNova policy layer over the upstream Archify skill. Do not rei
 
 ## Required startup
 
-1. Locate the directory containing this `SKILL.md`.
-2. From that directory, run:
+1. Preserve the user's current repository/workspace root before doing anything else:
 
    ```bash
-   bash scripts/ensure-archify.sh
+   WORKSPACE_ROOT="$(pwd)"
    ```
 
-3. The script prints the absolute path of the pinned Archify runtime.
-4. Read `<printed-path>/SKILL.md`.
-5. Follow the upstream Archify skill for schema selection, authoring, validation, delivery, and output behavior.
-6. Keep `ARCHIFY_UPDATE_CHECK_DISABLED=1`. CompNova upgrades Archify centrally; do not self-update the runtime during a task.
+2. Locate the directory containing this `SKILL.md` and, from that skill directory, run:
+
+   ```bash
+   ARCHIFY_DIR="$(bash scripts/ensure-archify.sh)"
+   ```
+
+3. The script prints the absolute path of the pinned Archify runtime. Verify and read:
+
+   ```text
+   <ARCHIFY_DIR>/SKILL.md
+   ```
+
+4. Treat `ARCHIFY_DIR` as the working directory for Archify's own schemas, examples, references, and CLI commands. The upstream skill's relative commands such as `node bin/archify.mjs ...` are relative to `ARCHIFY_DIR`.
+5. Keep the candidate JSON and delivered HTML in the user's original `WORKSPACE_ROOT`, not inside the Archify cache. When invoking Archify from `ARCHIFY_DIR`, pass absolute input/output paths under `WORKSPACE_ROOT`.
+6. Follow the upstream Archify skill for schema selection, authoring, validation, delivery, and output behavior.
+7. Keep `ARCHIFY_UPDATE_CHECK_DISABLED=1`. CompNova upgrades Archify centrally; do not self-update the runtime during a task.
+
+Example execution shape:
+
+```bash
+WORKSPACE_ROOT="$(pwd)"
+# Run ensure-archify.sh from the installed architecture skill directory.
+ARCHIFY_DIR="<resolved absolute Archify path>"
+mkdir -p "$WORKSPACE_ROOT/architecture-output"
+cd "$ARCHIFY_DIR"
+node bin/archify.mjs validate architecture \
+  "$WORKSPACE_ROOT/architecture-output/system.architecture.json" \
+  --quality showcase --json
+node bin/archify.mjs deliver architecture \
+  "$WORKSPACE_ROOT/architecture-output/system.architecture.json" \
+  "$WORKSPACE_ROOT/architecture-output/system.architecture.html" \
+  --quality showcase --json
+```
 
 If the bootstrap script or Archify `doctor` command fails, stop and report the failure rather than fabricating a diagram.
 
@@ -62,7 +90,7 @@ When the request is mainly a system topology or "how these systems connect", pre
 
 ## Default output location
 
-If the user does not specify a path, create a new directory named:
+If the user does not specify a path, create this directory under `WORKSPACE_ROOT`:
 
 ```text
 architecture-output/
