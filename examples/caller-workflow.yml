@@ -1,0 +1,30 @@
+name: Architecture Diagram
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: Describe the system or diagram to generate
+        required: true
+        type: string
+      diagram_type:
+        description: Diagram type
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - architecture
+          - workflow
+          - sequence
+          - dataflow
+          - lifecycle
+
+jobs:
+  architecture:
+    uses: CompNova-repo/agent-skills/.github/workflows/architecture.yml@main
+    with:
+      prompt: ${{ inputs.prompt }}
+      diagram_type: ${{ inputs.diagram_type }}
+      output_dir: architecture-output
+    secrets: inherit
