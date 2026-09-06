@@ -57,16 +57,6 @@ jobs:
       contents: read
 
     env:
-      ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
-      ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
-      ANTHROPIC_MODEL: MiniMax-M3
-      ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M3
-      ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M3
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M3
-      API_TIMEOUT_MS: "3000000"
-      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
-      CLAUDE_CODE_AUTO_COMPACT_WINDOW: "1000000"
-      CLAUDE_CODE_SKIP_PROMPT_HISTORY: "1"
       ARCHIFY_UPDATE_CHECK_DISABLED: "1"
       DISABLE_TELEMETRY: "1"
 
@@ -186,6 +176,17 @@ jobs:
           PY
 
       - name: Generate architecture with MiniMax M3
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_MODEL: MiniMax-M3
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M3
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M3
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M3
+          API_TIMEOUT_MS: "3000000"
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "1000000"
+          CLAUDE_CODE_SKIP_PROMPT_HISTORY: "1"
         shell: bash
         run: |
           set -euo pipefail
@@ -197,8 +198,7 @@ jobs:
             --max-turns 40 \
             --no-session-persistence \
             --output-format text \
-            "$(cat /tmp/compnova-architecture-prompt.txt)" \
-            2>&1 | tee /tmp/claude-architecture-output.txt
+            "$(cat /tmp/compnova-architecture-prompt.txt)"
 
       - name: Verify generated artifacts and repository isolation
         env:
@@ -260,12 +260,3 @@ jobs:
           path: ${{ inputs.output_dir }}
           if-no-files-found: error
           retention-days: 30
-
-      - name: Upload Claude log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: compnova-architecture-${{ github.run_id }}-logs
-          path: /tmp/claude-architecture-output.txt
-          if-no-files-found: ignore
-          retention-days: 7
