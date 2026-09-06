@@ -1,0 +1,75 @@
+name: Validate Agent Skills
+
+on:
+  push:
+    paths:
+      - "skills/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+      - "examples/**"
+      - "docs/**"
+      - "README.md"
+      - ".gitignore"
+  pull_request:
+    paths:
+      - "skills/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+      - "examples/**"
+      - "docs/**"
+      - "README.md"
+      - ".gitignore"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ARCHIFY_UPDATE_CHECK_DISABLED: "1"
+      DISABLE_TELEMETRY: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/run-claude-minimax.sh
+          bash -n skills/architecture/scripts/ensure-archify.sh
+
+      - name: Verify skill discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx -y skills add . --list | tee /tmp/skills-list.txt
+          grep -q "architecture" /tmp/skills-list.txt
+
+      - name: Verify pinned Archify runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          archify_dir="$(bash skills/architecture/scripts/ensure-archify.sh)"
+          test -f "${archify_dir}/SKILL.md"
+          test -f "${archify_dir}/bin/archify.mjs"
+          node "${archify_dir}/bin/archify.mjs" doctor
+
+      - name: Check for committed MiniMax Token Plan keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE --exclude-dir=.git 'sk-cp-[A-Za-z0-9_-]{8,}' .; then
+            echo "::error::A value resembling a MiniMax Token Plan key is committed."
+            exit 1
+          fi
